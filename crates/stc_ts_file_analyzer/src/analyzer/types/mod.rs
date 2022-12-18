@@ -13,9 +13,10 @@ use stc_ts_generics::ExpandGenericOpts;
 use stc_ts_type_ops::{tuple_normalization::TupleNormalizer, Fix};
 use stc_ts_types::{
     name::Name, Accessor, Array, Class, ClassDef, ClassMember, ClassMetadata, ComputedKey, Conditional, ConditionalMetadata,
-    ConstructorSignature, EnumVariant, Id, IdCtx, IndexedAccessType, Instance, InstanceMetadata, Intersection, Intrinsic, IntrinsicKind,
-    Key, KeywordType, KeywordTypeMetadata, LitType, LitTypeMetadata, MethodSignature, Operator, PropertySignature, QueryExpr, QueryType,
-    Ref, ThisType, ThisTypeMetadata, TplType, Type, TypeElement, TypeLit, TypeLitMetadata, TypeParam, TypeParamInstantiation, Union,
+    ConstructorSignature, EnumVariant, Id, IdCtx, IndexedAccessType, Instance, InstanceMetadata, Interface, Intersection, Intrinsic,
+    IntrinsicKind, Key, KeywordType, KeywordTypeMetadata, LitType, LitTypeMetadata, MethodSignature, Operator, PropertySignature,
+    QueryExpr, QueryType, Ref, ThisType, ThisTypeMetadata, TplType, Type, TypeElement, TypeLit, TypeLitMetadata, TypeParam,
+    TypeParamInstantiation, Union,
 };
 use stc_ts_utils::run;
 use stc_utils::{
@@ -96,7 +97,6 @@ impl Analyzer<'_, '_> {
         match ty.normalize() {
             Type::Lit(..)
             | Type::TypeLit(..)
-            | Type::Interface(..)
             | Type::Class(..)
             | Type::ClassDef(..)
             | Type::Tuple(..)
@@ -107,6 +107,47 @@ impl Analyzer<'_, '_> {
             | Type::Param(_)
             | Type::Module(_)
             | Type::Tpl(..) => return Ok(ty),
+            Type::Interface(Interface {
+                span,
+                name,
+                type_params,
+                extends,
+                body,
+                metadata,
+            }) => {
+                for extend in extends {
+                    for type_arg in extend.type_args.as_ref() {
+                        for param in type_arg.to_owned().params {
+                            match param {
+                                Type::Array(array) => return Ok(Cow::Owned(Type::Array(array))),
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                // let ty = extends.iter().map(|ts_expr| {
+                //     for a in ts_expr.type_args.as_ref() {
+                //         for param in a.to_owned().params {
+                // let ty = match param {
+                // Type::Array(d) => {
+                //     let ty = Type::Tpl(TplType {
+                //         span: span.to_owned(),
+                //         quasis: Vec::new(),
+                //         types: vec![ty.clone().into_owned()],
+                //         metadata: TplTypeMetadata {
+                //             common: CommonTypeMetadata {
+                // ..Default::default() },
+                //         },
+                //     });
+
+                //     ty
+                // }
+                //     _type => _type.to_owned(),
+                // };
+                //         }
+                //     }
+                // });
+            }
             _ => {}
         }
 

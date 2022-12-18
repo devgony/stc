@@ -1949,6 +1949,7 @@ impl Analyzer<'_, '_> {
             Type::This(ThisType { span, .. }) => return Err(ErrorKind::CannotAssingToThis { span: *span }.into()),
 
             Type::Interface(Interface {
+                //issue#216
                 name,
                 ref body,
                 ref extends,
